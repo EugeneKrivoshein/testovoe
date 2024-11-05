@@ -5,23 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"testovoe/config"
 	"testovoe/internal/models"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
-
-type Document struct {
-	ID       string
-	Name     string
-	MimeType string
-	File     bool
-	Public   bool
-	Created  time.Time
-	Grant    []string
-}
 
 type PostgresProvider struct {
 	db *sql.DB
@@ -84,6 +73,23 @@ func (p *PostgresProvider) GetUserByUsername(username string) (*models.User, err
 	return user, err
 }
 
+func (p *PostgresProvider) GetUserByToken(token string) (*models.User, error) {
+	user := &models.User{}
+	err := p.db.QueryRow(
+		`SELECT id, username, password_hash, token FROM users WHERE token = $1`,
+		token,
+	).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Token)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // пользователь с таким токеном не найден
+	}
+	if err != nil {
+		return nil, err // ошибка базы данных
+	}
+
+	return user, nil
+}
+
 func (p *PostgresProvider) UpdateUserToken(user *models.User) error {
 	_, err := p.db.Exec(
 		`UPDATE users SET token = $1 WHERE id = $2`,
@@ -102,4 +108,12 @@ func (p *PostgresProvider) ClearUserToken(token string) error {
 
 func (p *PostgresProvider) Close() error {
 	return p.db.Close()
+}
+
+func (p *PostgresProvider) SaveDocument(doc *models.Document) error {
+	_, err := p.db.Exec(
+		`INSERT INTO documents (user_id, name, mime_type, content, public, grant) VALUES ($1, $2, $3, $4, $5, $6)`,
+		doc.UserID, doc.Name, doc.MimeType, doc.Content, doc.Public, pq.Array(doc.Grant),
+	)
+	return err
 }

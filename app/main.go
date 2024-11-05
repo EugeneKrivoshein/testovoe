@@ -21,7 +21,10 @@ func main() {
 	userService := services.NewUserService(pg)
 	authHandler := handlers.NewAuthHandler(pg, userService)
 
-	router := api.NewRouter(authHandler)
+	docService := services.NewDocumentService(pg)
+	docHandler := handlers.NewDocumentHandler(pg, docService)
+
+	router := api.NewRouter(authHandler, docHandler, pg)
 
 	defer pg.Close()
 
