@@ -1,0 +1,10 @@
+{
+  "database": {
+    "host": "db",
+    "port": 5432,
+    "user": "postgres",
+    "password": "postgres",
+    "dbname": "mydb"
+  },
+  "admin_token": "1234567890"
+}
